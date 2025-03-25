@@ -134,79 +134,109 @@
             margin-bottom: 10px;
         }
 
-        /* Redes sociales */
-        .barra {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
-        }
+ /* Redes sociales */
+.barra {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centra los íconos */
+    gap: 10px; /* Espacio uniforme entre elementos */
+}
 
-        .barra a {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 50px;
-            height: 50px;
-            background-color: #333;
-            color: white;
-            font-size: 24px;
-            border-radius: 50%;
-            text-decoration: none;
-            transition: 0.3s;
-        }
+.barra a {
+    position: relative;
+    display: flex;
+    justify-content: center; /* Centra el ícono */
+    align-items: center;
+    width: 50px; /* Tamaño uniforme */
+    height: 50px;
+    font-size: 24px;
+    text-decoration: none;
+    border-radius: 50%; /* Hace los botones circulares */
+    background-color: white; /* Fondo para mejor visibilidad */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
 
-        .barra a:hover {
-            transform: scale(1.1);
-            opacity: 0.8;
-        }
+.barra a:hover {
+    transform: scale(1.1); /* Efecto de crecimiento */
+}
 
-        .facebook { background: #3b5998; }
-        .twitter { background: #1da1f2; }
-        .mail { background: #ff5733; }
-        .google { background: #dd4b39; }
-        .pinterest { background: #bd081c; }
-        .github { background: #171515; }
-        
+/* Tooltip (Texto emergente al pasar el mouse) */
+.barra a span {
+    position: absolute;
+    right: 60px; /* Espaciado adecuado */
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 14px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateX(10px);
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.barra a:hover span {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Colores específicos */
+.facebook { color: #1877F2; }
+.twitter { color: #1DA1F2; }
+.kick { color:green; }
+.youtube { color: #DB4437; }
+.tiktok { color:black }
+.whatsapp { color: green; }
+
 
     </style>
 </head>
 <body>
     <div class="logo-container">
-        <img src="../imagenes/SelfSecuritygps.png" alt="SelfSecuritygps Logo" class="logo">
+    <a href="https://selfsecurity.com.co">
+    <img src="../imagenes/SelfSecuritygps.png" alt="SelfSecuritygps Logo" class="logo">
+</a>
+
         <div class="barra">
-            <a class="facebook" href="#"><i class="fab fa-facebook-f"></i></a>
-            <a class="twitter" href="#"><i class="fab fa-twitter"></i></a>
-            <a class="mail" href="#"><i class="fas fa-envelope"></i></a>
-            <a class="google" href="#"><i class="fab fa-google-plus-g"></i></a>
-            <a class="pinterest" href="#"><i class="fab fa-pinterest"></i></a>
-            <a class="github" href="#"><i class="fab fa-github"></i></a>
+            <a class="facebook" href="https://www.facebook.com/selfsecur1tygps"><i class="fab fa-facebook-f"></i></a>
+            <a class="twitter" href="https://x.com/Self_Security_?t=Y_Mw40mqbBj3xGLHmoA02w&s=09"><i class="fab fa-twitter"></i></a>
+            <a class="kick" href="https://kick.com/selfsecuritygps" target="_blank">
+    <i class="fas fa-tv"></i>
+</a>
+            <a class="youtube" href="https://www.youtube.com/@selfsecuritygps"><i class="fab fa-youtube"></i></a>
+            <a class="tiktok" href="https://www.tiktok.com/@selfsecurity.gps"><i class="fab fa-tiktok"></i></a>
+            <a class="whatsapp" href="#"><i class="fab fa-whatsapp"></i></a>
         </div>
     </div>
 
     <div class="container" id="container">
-        <div class="form-container login-container">
-            <form action="registroU.php" method="GET">
-                <h2>Iniciar Sesión</h2>
-                <input type="email" name="correo" placeholder="Correo Electrónico" required>
-                <input type="password" name="password" placeholder="Contraseña" required>
-                <button type="submit">Entrar</button>
-                <p>¿No tienes una cuenta? <a href="#" id="goToRegister">Regístrate</a></p>
-            </form>
-        </div>
-
-        <div class="form-container register-container">
-            <form action="registroU.php" method="GET">
-<!-- <img src="../imagenes/Slide.jpg" alt="Slide Image" class="movable-image"> -->
-                <h2>Registrarse</h2>
-                <input type="text" name="nombre" placeholder="Nombre Completo" required>
-                <input type="email" name="correo" placeholder="Correo Electrónico" required>
-                <input type="password" name="password" placeholder="Contraseña" required>
-                <button type="submit">Registrarse</button>
-                <p>¿Ya tienes una cuenta? <a href="#" id="goToLogin">Iniciar Sesión</a></p>
-            </form>
-        </div>
+    <!-- FORMULARIO DE LOGIN -->
+    <div class="form-container login-container">
+        <form action="login.php" method="POST">
+            <h2>Iniciar Sesión</h2>
+            <input type="email" name="correo" placeholder="Correo Electrónico" required>
+            <input type="password" name="password" placeholder="Contraseña" required>
+            <button type="submit">Entrar</button>
+            <p>¿No tienes una cuenta? <a href="#" id="goToRegister">Regístrate</a></p>
+        </form>
     </div>
+
+    <!-- FORMULARIO DE REGISTRO -->
+    <div class="form-container register-container">
+    <form action="./registoU.php" method="POST">
+            <h2>Registrarse</h2>
+            <input type="text" name="nombre" placeholder="Nombre Completo" required>
+            <input type="email" name="correo" placeholder="Correo Electrónico" required>
+            <input type="password" name="password" placeholder="Contraseña" required>
+            <button type="submit">Registrarse</button>
+            <p>¿Ya tienes una cuenta? <a href="#" id="goToLogin">Iniciar Sesión</a></p>
+        </form>
+    </div>
+</div>
 
     <script>
         document.getElementById("goToRegister").addEventListener("click", function() {
