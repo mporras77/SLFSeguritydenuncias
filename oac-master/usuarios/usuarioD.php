@@ -1,45 +1,51 @@
 <?php
-session_start();
-include 'conexionBD.php';
+session_start(); // Iniciar sesión
+include 'conexionBD.php'; // Conectar con la base de datos (también subir un nivel si está fuera)
 
-// Validar si se reciben los datos por POST
-if (!isset($_POST['usuario'], $_POST['password'])) {
-    die('<script>alert("Faltan datos."); window.location = "index.php";</script>');
-}
-
-$usuario = trim($_POST['usuario']);
-$password = trim($_POST['password']);
-$passwordHash = hash('sha256', $password); // Hash de la contraseña ingresada
-
-// Preparar la consulta segura con prepared statements
-$stmt = $conexion->prepare("SELECT id_usuario, password FROM usuarios WHERE usuario = ? LIMIT 1");
-$stmt->bind_param("s", $usuario);
-$stmt->execute();
-$result = $stmt->get_result();
-
-// Verificar si el usuario existe
-if ($result->num_rows > 0) {
-    $row = $result->fetch_assoc();
-
-    // Depuración: Imprimir los hashes para ver si coinciden
-    error_log("Ingresado: " . $passwordHash);
-    error_log("En la BD: " . $row['password']);
-
-    // Comparar los hashes de la contraseña ingresada y la almacenada en la BD
-    if (hash_equals($row['password'], $passwordHash)) {
-        $_SESSION['usuario'] = $usuario;
-        header("Location: ./index.php"); // Redirigir al usuario logueado
-        exit;
-    } else {
-        echo '<script>alert("Contraseña incorrecta"); window.location = "login.php";</script>';
-        exit;
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Verificar conexión a la base de datos
+    if (!$conexion) {
+        die("Error de conexión: " . mysqli_connect_error());
     }
-} else {
-    echo '<script>alert("Usuario no existente, por favor regístrate"); window.location = "login.php";</script>';
-    exit;
-}
 
-// Cerrar conexión
-$stmt->close();
-$conexion->close();
+    // Validar que se enviaron los datos
+    if (!isset($_POST['usuario'], $_POST['password'])) {
+        header("Location: ../index.php?error=campos_vacios");
+        exit();
+    }
+
+    // Limpiar datos del formulario
+    $correo = mysqli_real_escape_string($conexion, trim($_POST['usuario']));
+    $contrasena = $_POST['password']; // No es necesario escaparlo, ya que no se usa directamente en SQL
+
+    // Buscar el usuario en la base de datos
+    $query = "SELECT id_usuario, usuario, password, nombre FROM usuarios WHERE usuario = '$correo'";
+    $resultado = mysqli_query($conexion, $query);
+
+    if (mysqli_num_rows($resultado) > 0) {
+        $usuario = mysqli_fetch_assoc($resultado);
+
+        // Verificar la contraseña
+        if (password_verify($contrasena, $usuario['password'])) {
+            // Iniciar sesión y guardar datos del usuario
+            $_SESSION['id_usuario'] = $usuario['id_usuario'];
+            $_SESSION['usuario'] = $usuario['usuario'];
+            $_SESSION['nombre'] = $usuario['nombre'];
+
+            header("Location: ../../../index.php"); // Redirigir al panel de usuario
+            exit();
+        } else {
+            header("Location: ../index.php?error=contraseña_incorrecta");
+            exit();
+        }
+    } else {
+        header("Location: ../index.php?error=usuario_no_encontrado");
+        exit();
+    }
+
+    mysqli_close($conexion); // Cerrar conexión
+} else {
+    header("Location: ../index.php?error=acceso_denegado");
+    exit();
+}
 ?>
