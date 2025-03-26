@@ -1,79 +1,61 @@
 <?php
 session_start();
 
+// Verificar si la sesión 'logged' está definida antes de acceder a ella
+if (!isset($_SESSION['logged']) || $_SESSION['logged'] !== true) {
+    header("Location: usuarios/index.php");
+    exit(); // Asegura que el script no continúe ejecutándose
+}
 
-
-
-if ($_SESSION['logged'] != true ){
-    header("usuarios/index.php");
-    
-}else{
-
-    
+// Definir estilos
 define("Denuncia", 'style="color: #d9534f;"');
 define("Solicitud", 'style="color: #5bc0de;"');
 define("Reclamo", 'style="color: #d58512;"');
 define("Atencion", 'style="color: #e55510;"');
 
-if (isset($_GET['id_ciudadano'])){
-    $id_ciudadano = $_GET['id_ciudadano'];
+// Obtener valores de la URL si están definidos
+$id_ciudadano = $_GET['id_ciudadano'] ?? null;
+$usuario = $_GET['usuario'] ?? null;
+
+// Verificar si 'opcion' está definida
+if (!isset($_GET['opcion'])) {
+    header("Location: attentions/index.php");
+    exit();
 }
 
-if (isset($_GET['usuario'])){
-    $usuario = $_GET['usuario'];
+$tipo_proceso = strtolower($_GET['opcion']);
+$proceso = $_GET['opcion'];
+
+// Determinar la tabla y los enlaces según el proceso
+$tabla = "";
+$linkOne = "";
+$linkTwo = "";
+
+if ($proceso === "solicitud") {
+    $tabla = "solicitudes";
+    $linkOne = "denuncia";
+    $linkTwo = "reclamo";
+} elseif ($proceso === "denuncia") {
+    $tabla = "denuncias";
+    $linkOne = "solicitud";
+    $linkTwo = "reclamo";
+} elseif ($proceso === "reclamo") {
+    $tabla = "reclamos";
+    $linkOne = "solicitud";
+    $linkTwo = "denuncia";
 }
 
-
-if (isset($_GET['opcion'])){
-    $tipo_proceso = strtolower($_GET['opcion']);
-    $proceso = $_GET['opcion'];
-}else{
-    header("Location:attentions/index.php");
-}
-
-
-        if (isset($proceso)){
-
-            if ($proceso==="solicitud"){
-                $tabla = "solicitudes";
-                $linkOne = "denuncia";
-                $linkTwo = "reclamo";
-            }else  if ($proceso==="denuncia"){
-                $tabla = "denuncias";
-                $linkOne = "solicitud";
-                $linkTwo = "reclamo";
-            }else if ($proceso==="reclamo"){
-                $tabla = "reclamos";
-                $linkOne = "solicitud";
-                $linkTwo = "denuncia";
-            }
-
-        }
-
-switch ($tipo_proceso) {
-    case "denuncia":
-        $tabla = "denuncias";
-        $estilo = constant("Denuncia");
-        break;
-    case "solicitud":
-        $tabla = "solicitudes";
-        $estilo = constant("Solicitud");
-        break;
-    case "reclamo":
-        $tabla = "reclamos";
-        $estilo = constant("Reclamo");
-        break;
-    case "atencion":
-        $tabla = "atenciones";
-        $estilo = constant("Atencion");
-        break;
-//    default:
-//        $estilo = 'style="color: #000000;"';
-//        break;
-}
-
+// Asignar estilo según el tipo de proceso
+$estilo = match ($tipo_proceso) {
+    "denuncia" => constant("Denuncia"),
+    "solicitud" => constant("Solicitud"),
+    "reclamo" => constant("Reclamo"),
+    "atencion" => constant("Atencion"),
+    default => 'style="color: #000000;"',
+};
 
 ?>
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -306,5 +288,4 @@ switch ($tipo_proceso) {
     } );
 </script>
 <?php 
-}
 ?>

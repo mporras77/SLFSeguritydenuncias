@@ -216,9 +216,9 @@
     <div class="container" id="container">
     <!-- FORMULARIO DE LOGIN -->
     <div class="form-container login-container">
-        <form action="login.php" method="POST">
+        <form action="usuarioD.php" method="POST">
             <h2>Iniciar Sesión</h2>
-            <input type="email" name="correo" placeholder="Correo Electrónico" required>
+            <input type="email" name="usuario" placeholder="Correo Electrónico" required>
             <input type="password" name="password" placeholder="Contraseña" required>
             <button type="submit">Entrar</button>
             <p>¿No tienes una cuenta? <a href="#" id="goToRegister">Regístrate</a></p>
