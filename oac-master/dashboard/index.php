@@ -1,11 +1,15 @@
 <?php
+// Iniciar la sesión para acceder a las variables de sesión
 session_start();
-if ($_SESSION['logged'] != true ){
-    header("Location:../usuarios/index.php");
-    
-}else{
 
+// Verificar si el usuario ha iniciado sesión correctamente
+if (!isset($_SESSION['logged']) || $_SESSION['logged'] !== true) {
+    // Redirigir a la sección de registro en log-reg.php
+    header("Location: ../usuarios/log-reg.php?registro=1");
+    exit(); // Detener la ejecución del script después de la redirección
+}
 ?>
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -554,9 +558,7 @@ word-wrap:break-word;
         });
         
     } ); 
+    
    
 </script>
 </html>
-<?php 
-}
-?>

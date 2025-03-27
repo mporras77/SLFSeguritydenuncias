@@ -1,51 +1,61 @@
 <?php
-session_start(); // Iniciar sesión
-include 'conexionBD.php'; // Conectar con la base de datos (también subir un nivel si está fuera)
+// Iniciar sesión para mantener la sesión del usuario
+session_start(); 
 
+// Incluir el archivo de conexión a la base de datos
+include 'conexionBD.php';
+
+// Verificar si la solicitud es de tipo POST
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Verificar conexión a la base de datos
     if (!$conexion) {
         die("Error de conexión: " . mysqli_connect_error());
     }
 
-    // Validar que se enviaron los datos
+    // Validar que los campos requeridos estén presentes en la solicitud
     if (!isset($_POST['usuario'], $_POST['password'])) {
-        header("Location: ../index.php?error=campos_vacios");
+        header("Location: log-reg.php?error=campos_vacios");
         exit();
     }
 
-    // Limpiar datos del formulario
+    // Limpiar los datos del formulario para evitar inyecciones SQL
     $correo = mysqli_real_escape_string($conexion, trim($_POST['usuario']));
     $contrasena = $_POST['password']; // No es necesario escaparlo, ya que no se usa directamente en SQL
 
-    // Buscar el usuario en la base de datos
+    // Consultar la base de datos para encontrar el usuario
     $query = "SELECT id_usuario, usuario, password, nombre FROM usuarios WHERE usuario = '$correo'";
     $resultado = mysqli_query($conexion, $query);
 
+    // Verificar si el usuario existe
     if (mysqli_num_rows($resultado) > 0) {
         $usuario = mysqli_fetch_assoc($resultado);
 
-        // Verificar la contraseña
+        // Verificar si la contraseña ingresada coincide con la almacenada
         if (password_verify($contrasena, $usuario['password'])) {
-            // Iniciar sesión y guardar datos del usuario
+            // Guardar los datos del usuario en la sesión
             $_SESSION['id_usuario'] = $usuario['id_usuario'];
             $_SESSION['usuario'] = $usuario['usuario'];
             $_SESSION['nombre'] = $usuario['nombre'];
 
-            header("Location: ../../../index.php"); // Redirigir al panel de usuario
+            // Redirigir al panel de usuario
+            header("Location: ../dashboard/index.php");
             exit();
         } else {
-            header("Location: ../index.php?error=contraseña_incorrecta");
+            // Si la contraseña es incorrecta, redirigir con un mensaje de error
+            header("Location: log-reg.php?error=contraseña_incorrecta");
             exit();
         }
     } else {
-        header("Location: ../index.php?error=usuario_no_encontrado");
+        // Si el usuario no se encuentra en la base de datos, redirigir con un error
+        header("Location: log-reg.php?error=usuario_no_encontrado");
         exit();
     }
 
-    mysqli_close($conexion); // Cerrar conexión
+    // Cerrar la conexión con la base de datos
+    mysqli_close($conexion);
 } else {
-    header("Location: ../index.php?error=acceso_denegado");
+    // Si el acceso no es por método POST, redirigir con un error
+    header("Location: log-reg.php?error=acceso_denegado");
     exit();
 }
 ?>

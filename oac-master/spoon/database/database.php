@@ -797,7 +797,10 @@ class SpoonDatabase
 			$subKeys = array_keys($actualValues[0]);
 
 			// prefix with table name
-			array_walk($subKeys, create_function('&$key', '$key = "' . $this->quoteName($table) . '.$key";'));
+			array_walk($subKeys, function (&$key) use ($table) {
+				$key = $this->quoteName($table) . '.' . $key;
+			});
+			
 
 			// build query
 			$query .= implode(', ', $subKeys) . ') VALUES ';
@@ -845,7 +848,10 @@ class SpoonDatabase
 			$numFields = count($actualValues);
 
 			// prefix with table name
-			array_walk($keys, create_function('&$key', '$key = "' . $this->quoteName($table) . '.$key";'));
+			array_walk($keys, function (&$key) use ($table) {
+				$key = $this->quoteName($table) . '.' . $key;
+			});
+			
 
 			// build query
 			$query .= implode(', ', $keys) . ') VALUES (';
