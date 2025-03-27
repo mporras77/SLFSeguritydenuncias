@@ -1,91 +1,66 @@
 <?php
 session_start();
-if ($_SESSION['logged'] != true ){
-    header("Location:../usuarios/index.php");
-    
-}else{
-
-include '../spoon/spoon.php';
-
-$objDB= new DBConexion();
-
-
-
-if (isset($_GET['year']) && !empty($_GET['year'])){
-    $year = $_GET['year'];
+if (!isset($_SESSION['logged']) || $_SESSION['logged'] !== true) {
+    header("Location: ../usuarios/index.php");
+    exit();
 }
 
-if (isset($_GET['atenciones']) && !empty($_GET['atenciones'])){
-    $atenciones = $_GET['atenciones'];
+require_once '../spoon/spoon.php';
+
+$objDB = new DBConexion();
+
+// Validación de parámetros GET
+$year = isset($_GET['year']) ? intval($_GET['year']) : 0;
+$atenciones = isset($_GET['atenciones']) ? intval($_GET['atenciones']) : 0;
+
+if ($year <= 0) {
+    exit("Parámetro 'year' inválido o faltante.");
 }
 
-if (isset($atenciones)){
-/*
- * Obtener total atenciones
- */
-    $queryA = "SELECT count(id_atencion) AS total_atenciones "
-            . "FROM atenciones "
-            . "WHERE year = '{$year}'";
-    $rsA = $objDB->getRecord($queryA);
-    $totAtenciones = $rsA['total_atenciones'];
+// Si se solicitan solo atenciones
+if ($atenciones) {
+    $query = "SELECT COUNT(id_atencion) AS total FROM atenciones WHERE year = ?";
+    $rs = $objDB->getRecord($query, [$year]);
     
-    $cols = array(array("label"=>"Atenciones", "type" => "string"),array("label"=>"Total","type"=>"number"));
-    $rows = array(array("c"=>array(array("v"=>"Atenciones"), array("v"=>$totAtenciones))));
+    $data = [
+        "cols" => [
+            ["label" => "Atenciones", "type" => "string"],
+            ["label" => "Total", "type" => "number"]
+        ],
+        "rows" => [
+            ["c" => [["v" => "Atenciones"], ["v" => intval($rs['total'])]]]
+        ]
+    ];
     
-    $data = array("cols"=>$cols, "rows"=>$rows);
     echo json_encode($data);
-}else{
-    
-
-
-    /*
-     * Obtener total denuncias
-     */
-    $queryD = "SELECT count(id_denuncia) AS total_denuncias "
-            . "FROM denuncias "
-            . "WHERE year = '{$year}'";
-    $rsD = $objDB->getRecord($queryD);
-
-
-    /*
-     * Obtener total solicitudes
-     */
-    $queryS = "SELECT count(id_solicitud) AS total_solicitudes "
-            . "FROM solicitudes "
-            . "WHERE year = '{$year}'";
-    $rsS = $objDB->getRecord($queryS);
-
-
-
-    /*
-     * Obtener total reclamos
-     */
-    $queryR = "SELECT count(id_reclamo) AS total_reclamos "
-            . "FROM reclamos "
-            . "WHERE year = '{$year}'";
-    $rsR = $objDB->getRecord($queryR);
-
-        $tipo_proceso = $_GET['tipoProceso'];
-
-    $totDenuncias = $rsD['total_denuncias'];
-    $totSolicitudes = $rsS['total_solicitudes'];
-    $totReclamos = $rsR['total_reclamos'];
-
-    settype($totSolicitudes, int);
-    settype($totDenuncias, int);
-    settype($totReclamos, int);
-
-
-    $cols = array(array("label"=>"Procesos", "type" => "string"),array("label"=>"Total por proceso","type"=>"number"));
-    $rows = array( 
-                  array("c"=>array(array("v"=>"Solicitudes"),array("v"=>$totSolicitudes))),          
-                  array("c"=>array(array("v"=>"Denuncias"),array("v"=>$totDenuncias))),
-                  array("c"=>array(array("v"=>"Reclamos"),array("v"=>$totReclamos))));
-
-
-    $data = array("cols"=>$cols, "rows"=>$rows);
-    echo json_encode($data);
-    }
+    exit();
 }
+
+// Consulta única para obtener todas las estadísticas
+$query = "SELECT 
+            (SELECT COUNT(id_denuncia) FROM denuncias WHERE year = ?) AS total_denuncias,
+            (SELECT COUNT(id_solicitud) FROM solicitudes WHERE year = ?) AS total_solicitudes,
+            (SELECT COUNT(id_reclamo) FROM reclamos WHERE year = ?) AS total_reclamos";
+
+$rs = $objDB->getRecord($query, [$year, $year, $year]);
+
+// Conversión de valores a enteros
+$totDenuncias = intval($rs['total_denuncias']);
+$totSolicitudes = intval($rs['total_solicitudes']);
+$totReclamos = intval($rs['total_reclamos']);
+
+// Estructura de respuesta JSON
+$data = [
+    "cols" => [
+        ["label" => "Procesos", "type" => "string"],
+        ["label" => "Total por proceso", "type" => "number"]
+    ],
+    "rows" => [
+        ["c" => [["v" => "Solicitudes"], ["v" => $totSolicitudes]]],
+        ["c" => [["v" => "Denuncias"], ["v" => $totDenuncias]]],
+        ["c" => [["v" => "Reclamos"], ["v" => $totReclamos]]]
+    ]
+];
+
+echo json_encode($data);
 ?>
-

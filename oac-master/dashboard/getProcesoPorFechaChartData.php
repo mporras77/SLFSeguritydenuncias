@@ -1,84 +1,77 @@
 <?php
 session_start();
-if ($_SESSION['logged'] != true ){
+if (!isset($_SESSION['logged']) || $_SESSION['logged'] !== true) {
     header("Location: ../usuarios/index.php");
-    
-}else{
-
-if (isset($_GET['year']) && !empty($_GET['year'])){
-    $year = $_GET['year'];
+    exit();
 }
-    
-include '../spoon/spoon.php';
 
-$objDB= new DBConexion();
+require_once '../spoon/spoon.php';
 
-/*
- * Obtener total atenciones
+$objDB = new DBConexion();
+
+/**
+ * Función para obtener el color según el índice.
  */
-// verde naranja azul rojo marron
 function getColor($indice) {
-    $color = array(1=>'#109618',2=>"#ff9900", 3 => "#3366cc", 4 => "#dc3912", 5 => "Brown");
-    return $color[$indice];
+    $colores = ['#109618', '#ff9900', '#3366cc', '#dc3912', 'Brown'];
+    return $colores[$indice - 1] ?? '#000000'; // Color por defecto en caso de error
 }
 
-if (isset($_GET['tipoProceso'])){
-    $tipo_proceso = $_GET['tipoProceso'];
+// Validación de parámetros GET
+$tipo_proceso = $_GET['tipoProceso'] ?? '';
+$year = intval($_GET['year'] ?? 0);
+
+if (empty($tipo_proceso) || empty($year)) {
+    exit("Parámetros inválidos o faltantes.");
 }
 
-switch ($tipo_proceso) {
-    case "Atenciones":
-        $tabla = "atenciones";
-        $id_proceso =  "id_atencion";
-        break;
-    case "Denuncias":
-        $tabla = "denuncias";
-        $id_proceso =  "id_denuncia";
-        break;
-    case "Solicitudes":
-        $tabla = "solicitudes";
-        $id_proceso =  "id_solicitud";
-        break;
-    case "Reclamos":
-        $tabla = "reclamos";
-        $id_proceso =  "id_reclamo";
-        break;
+// Mapeo de tipos de proceso a tablas y campos
+$procesos = [
+    "Atenciones"  => "atenciones",
+    "Denuncias"   => "denuncias",
+    "Solicitudes" => "solicitudes",
+    "Reclamos"    => "reclamos"
+];
+
+if (!isset($procesos[$tipo_proceso])) {
+    exit("Tipo de proceso inválido.");
 }
 
-$objDB->execute("SET lc_time_names = 'es_VE';");
+$tabla = $procesos[$tipo_proceso];
 
-$query = " SELECT MONTHNAME(STR_TO_DATE(MONTH(fecha_registro), '%m')) AS mes, count(year) AS total "
-        . "FROM {$tabla} "
-        . "WHERE year = '{$year}' "
-        . "GROUP BY MONTH(fecha_registro)";
-        
-//        SELECT count(estatus), estatus FROM denuncias GROUP BY estatus
-       
-$rs = $objDB->getRecords($query);
+// Configuración del lenguaje en MySQL
+$objDB->execute("SET lc_time_names = 'es_VE'");
 
-$rows= array();
+// Consulta SQL para obtener el total por mes
+$query = "SELECT MONTHNAME(STR_TO_DATE(MONTH(fecha_registro), '%m')) AS mes, COUNT(year) AS total
+          FROM {$tabla}
+          WHERE year = ?
+          GROUP BY MONTH(fecha_registro)";
+
+// Ejecución de la consulta
+$rs = $objDB->getRecords($query, [$year]);
+
+// Preparación de los datos para JSON
+$rows = [];
 $indice = 0;
 
-foreach ($rs as $data){
-    $total = $data['total'];
-    settype($total, int);
-    $indice = $indice+1;
+foreach ($rs as $data) {
+    $total = intval($data['total']);
+    $indice++;
     $color = getColor($indice);
-    array_push($rows,array("c"=>array(array("v"=>$data['mes']), array("v"=>$total), array("v"=>$color))));
-}
-if (isset($_GET['tipoProceso'])){
-    $tipo_proceso = $_GET['tipoProceso'];
+    $rows[] = ["c" => [["v" => $data['mes']], ["v" => $total], ["v" => $color]]];
 }
 
+// Definir columnas para el gráfico
+$cols = [
+    ["label" => "Mes", "type" => "string"],
+    ["label" => "Total por mes", "type" => "number"],
+    ["type" => "string", "role" => "style"]
+];
 
-
-$cols = array(array("label"=>"Mes", "type" => "string"),array("label"=>"Total por mes","type"=>"number"), array("type"=>"string","role"=> "style"));
-//$rows = array(array("c"=>array(array("v"=>$tipo_proceso), array("v"=>$total))));//, 
-//              array("c"=>array(array("v"=>"Solicitudes"),array("v"=>$totSolicitudes))),          
-//              array("c"=>array(array("v"=>"Denuncias"),array("v"=>$totDenuncias))),
-//              array("c"=>array(array("v"=>"Reclamos"),array("v"=>$totReclamos))));
-$data = array("cols"=>$cols, "rows"=>$rows);
+// Construcción del JSON de respuesta
+$data = ["cols" => $cols, "rows" => $rows];
 echo json_encode($data);
-}
 ?>
+
 

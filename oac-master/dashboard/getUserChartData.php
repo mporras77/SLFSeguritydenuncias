@@ -1,93 +1,81 @@
 <?php
 session_start();
-if ($_SESSION['logged'] != true ){
-    header("Location:../usuarios/index.php");
-    
-}else{
+if (!isset($_SESSION['logged']) || $_SESSION['logged'] !== true) {
+    header("Location: ../usuarios/index.php");
+    exit();
+}
 
-include '../spoon/spoon.php';
+require_once '../spoon/spoon.php';
 
-$objDB= new DBConexion();
+$objDB = new DBConexion();
 
-/*
- * Obtener total atenciones
- */
-// verde naranja azul rojo marron
+// Función para obtener colores dinámicamente
 function getColor($indice) {
-    $color = array(1=>'#109618',2=>"#ff9900", 3 => "#3366cc", 4 => "#dc3912", 5 => "Brown");
-    return $color[$indice];
+    $colores = ['#109618', '#ff9900', '#3366cc', '#dc3912', 'Brown'];
+    return $colores[$indice % count($colores)];
 }
 
-if (isset($_GET['tipoProceso']) && !empty($_GET['tipoProceso'])){
-    $tipo_proceso = $_GET['tipoProceso'];
+// Validación y sanitización de parámetros GET
+$tipo_proceso = isset($_GET['tipoProceso']) ? filter_var($_GET['tipoProceso'], FILTER_SANITIZE_STRING) : '';
+$year = isset($_GET['year']) ? intval($_GET['year']) : 0;
+$mes = isset($_GET['mes']) ? filter_var($_GET['mes'], FILTER_SANITIZE_STRING) : '';
+
+if (!$tipo_proceso || !$year || !$mes) {
+    exit(json_encode(["error" => "Parámetros inválidos o faltantes."]));
 }
 
-if (isset($_GET['year']) && !empty($_GET['year'])){
-    $year = $_GET['year'];
+// Mapeo de procesos a tablas
+$procesos = [
+    "Atenciones" => ["tabla" => "atenciones", "id" => "id_atencion"],
+    "Denuncias" => ["tabla" => "denuncias", "id" => "id_denuncia"],
+    "Solicitudes" => ["tabla" => "solicitudes", "id" => "id_solicitud"],
+    "Reclamos" => ["tabla" => "reclamos", "id" => "id_reclamo"]
+];
+
+if (!isset($procesos[$tipo_proceso])) {
+    exit(json_encode(["error" => "Tipo de proceso inválido."]));
 }
 
-if (isset($_GET['mes']) && !empty($_GET['mes'])){
-    $mes = $_GET['mes'];
-}
+$tabla = $procesos[$tipo_proceso]["tabla"];
+$id_proceso = $procesos[$tipo_proceso]["id"];
 
-switch ($tipo_proceso) {
-    case "Atenciones":
-        $tabla = "atenciones";
-        $id_proceso =  "id_atencion";
-        break;
-    case "Denuncias":
-        $tabla = "denuncias";
-        $id_proceso =  "id_denuncia";
-        break;
-    case "Solicitudes":
-        $tabla = "solicitudes";
-        $id_proceso =  "id_solicitud";
-        break;
-    case "Reclamos":
-        $tabla = "reclamos";
-        $id_proceso =  "id_reclamo";
-        break;
-}
-
+// Configurar localización para nombres de meses en español
 $objDB->execute("SET lc_time_names = 'es_VE';");
 
-$query = "SELECT nombre, count({$id_proceso}) AS total, id_usuario
-        FROM {$tabla}
-        INNER JOIN usuarios 
-        WHERE usuarios.id_usuario = {$tabla}.idusuario
-        AND MONTHNAME(STR_TO_DATE(MONTH(fecha_registro), '%m'))='{$mes}'
-        AND year = '{$year}' 
-        GROUP BY idusuario";
-$rs = $objDB->getRecords($query);
+// Consulta SQL optimizada con parámetros
+$query = "SELECT usuarios.nombre, COUNT($tabla.$id_proceso) AS total, usuarios.id_usuario
+          FROM $tabla
+          INNER JOIN usuarios ON usuarios.id_usuario = $tabla.idusuario
+          WHERE MONTHNAME(STR_TO_DATE(MONTH(fecha_registro), '%m')) = ? 
+          AND year = ?
+          GROUP BY usuarios.id_usuario";
 
-$rows= array();
+$rs = $objDB->getRecords($query, [$mes, $year]);
+
+$rows = [];
 $indice = 0;
 
-foreach ($rs as $data){
-    
-    $total = $data['total'];
-    $id_usuario = $data['id_usuario'];
-    
-    settype($total, int);
-    settype($id_usuario, int);
-    
-    $indice = $indice+1;
-    $color = getColor($indice);
-    array_push($rows,array("c"=>array(array("v"=>$data['nombre']), array("v"=>$total), array("v"=>$id_usuario), array("v"=>$color))));
-}
-if (isset($_GET['tipoProceso'])){
-    $tipo_proceso = $_GET['tipoProceso'];
+foreach ($rs as $data) {
+    $rows[] = [
+        "c" => [
+            ["v" => $data['nombre']],
+            ["v" => intval($data['total'])],
+            ["v" => intval($data['id_usuario'])],
+            ["v" => getColor($indice++)]
+        ]
+    ];
 }
 
+// Estructura de datos para JSON
+$data = [
+    "cols" => [
+        ["label" => "Nombre", "type" => "string"],
+        ["label" => "Total por funcionario", "type" => "number"],
+        ["label" => "Id Usuario", "type" => "number"],
+        ["type" => "string", "role" => "style"]
+    ],
+    "rows" => $rows
+];
 
-
-$cols = array(array("label"=>"Nombre", "type" => "string"),array("label"=>"Total por funcionario","type"=>"number"),array("label"=>"Id Usuario","type"=>"number"), array("type"=>"string","role"=> "style"));
-//$rows = array(array("c"=>array(array("v"=>$tipo_proceso), array("v"=>$total))));//, 
-//              array("c"=>array(array("v"=>"Solicitudes"),array("v"=>$totSolicitudes))),          
-//              array("c"=>array(array("v"=>"Denuncias"),array("v"=>$totDenuncias))),
-//              array("c"=>array(array("v"=>"Reclamos"),array("v"=>$totReclamos))));
-$data = array("cols"=>$cols, "rows"=>$rows);
 echo json_encode($data);
-}
 ?>
-

@@ -6,57 +6,37 @@
 require_once "../spoon/spoon.php";
 session_start();
 
-$campos = array($_POST['comunidad']);
+// Validar que los campos requeridos están presentes y no están vacíos
+$comunidad = trim($_POST['comunidad'] ?? '');
+$id_parroquia = $_POST['parroquias'] ?? '';
 
-$campos.= $_POST['parroquias'];
-
-foreach ($campos as $value) {
-    if (empty($value))
-        exit("Hay campos en blanco, verifique e intente de nuevo");
+if (empty($comunidad) || empty($id_parroquia)) {
+    exit("Verifique que los campos requeridos hayan sido llenados e intente de nuevo.");
 }
 
-$comunidad = trim($_POST['comunidad']);
-
-$id_parroquia  = $_POST['parroquias'];
-
-
-if (!isset($comunidad))
-{
-    exit("Verifique que los campos requeridos hayan sido llenados, e intente de nuevo");
-}
- 
 try {
+    $objDB = new DBConexion();
+    $objDB->execute("SET NAMES utf8");
 
-    
-    $_data['comunidad'] = $comunidad;
-    $_data['id_parroquia'] = $id_parroquia;
+    $_data = [
+        'comunidad'    => $comunidad,
+        'id_parroquia' => $id_parroquia
+    ];
 
-    if (isset($_POST['id_comunidad'],$_POST['parroquias']) && !empty($_POST['id_comunidad'])){
+    if (!empty($_POST['id_comunidad'])) {
         $id_comunidad = $_POST['id_comunidad'];
-        $objDB = new DBConexion();
-        $objDB->execute("SET NAMES utf8");
-        $update = $objDB->update("comunidades", $_data, 'id_comunidad' . ' = ?', $id_comunidad );
-        if ($update===1){
-            $processLastId = 1;
-        }
-    }else{
-        
-        $objDB = new DBConexion();
-        $objDB->execute("SET NAMES utf8");
+        $update = $objDB->update("comunidades", $_data, "id_comunidad = ?", [$id_comunidad]);
+        $processLastId = $update ? 1 : 0;
+    } else {
         $processLastId = $objDB->insert("comunidades", $_data);
     }
 
-    
-    if ($processLastId > 0){
-        echo 1; 
-    }
-} 
-
-
-catch (Exception $ex) {
-    if (23000 == $ex->getCode()){
-        echo "Esta comunidad ya existe, selecciónela en la pantalla anterior, luego haga clic en Comunidad y asóciela al estado, municipio y parroquia correspondiente";
+    echo ($processLastId > 0) ? 1 : "Error al guardar la comunidad.";
+} catch (Exception $ex) {
+    if ($ex->getCode() == 23000) {
+        echo "Esta comunidad ya existe. Selecciónela en la pantalla anterior, luego haga clic en Comunidad y asóciela al estado, municipio y parroquia correspondiente.";
+    } else {
+        echo "Error: " . $ex->getMessage();
     }
 }
-    
 ?>

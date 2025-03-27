@@ -1,310 +1,108 @@
 <?php
-// session_start();
+session_start();
 
-// if ($_SESSION['logged'] != true ){
-//     header("Location:../usuarios/");
+if (!isset($_SESSION['logged']) || $_SESSION['logged'] !== true) {
+    header("Location: ../usuarios/");
+    exit();
+}
 
-// }else{
+include '../spoon/spoon.php';
+$objDB = new DBConexion();
 
+function get_fullname($txtcedula) {
+    global $objDB;
+    $query = "SELECT * FROM ciudadanos WHERE cedula = ?";
+    $rs = $objDB->getRecord($query, [$txtcedula]);
 
-    /**
-     * Consulto a la base de datos si se solicita detalles o actualizar
-     */
-
-
-
-
-
-    include '../spoon/spoon.php';
-
-//    $query = "SELECT MAX(id_" . $proceso . ") + 1 AS last_id "
-//                . "FROM " . $tabla;
-
-
-//
-//
-//    $rs = $objDB->getRecord($query);
-//
-//    $last_id = "001";
-//    if (isset($rs['last_id'])){
-//        $last_id = str_pad($rs['last_id'], 3, "0", STR_PAD_LEFT);
-//    }
-//
-//    $year = date("Y");
-//
-//    $estatus = array(
-//        1 =>"Aceptada",
-//        2 => "Valoración",
-//        3 => "Auditoría",
-//        4 => "Notificada",
-//        5 => "Rechazada",
-//        6 => "CGR",
-//        7 => "Por soportes"
-//    );
-//
-//    $disabled = '';
-//    $readonly = '';
-//    $boton = 'Guardar';
-
-    /**
-     * Este bloque maneja detalles y actualización
-     */
-//    if (isset($_GET['opcion'])){
-//
-//        echo "fuck";
-//        if ($_GET['opcion'] == "detalles"){
-//            $disabled = " disabled ";
-//            $readonly = " readonly ";
-//        }
-//        if ($_GET['opcion'] == "actualizar"){
-//            $boton = "Guardar cambios";
-//
-//        }
-//
-//
-//
-//
-//        if (isset($_GET['id'])){
-//            $id = $_GET['id'];
-//
-//            $query = "SELECT * "
-//                . "FROM " . $tabla . " "
-//                . "INNER JOIN ciudadanos "
-//                . "ON " . $tabla .".id_ciudadano = ciudadanos.id_ciudadano "
-//                . "WHERE " . $tabla .".id_" . $proceso . " = {$id}";
-//        }
-//        $rs = $objDB->getRecord($query);
-//
-//
-//
-//    }
-
-    //$txtcedula = $_POST['txtcedula'];
-
-    function get_fullname($txtcedula){
-        $objDB= new DBConexion();
-        $query = "SELECT * "
-                . "FROM ciudadanos "
-                . "WHERE cedula = $txtcedula";
-
-        $rs = $objDB->getRecord($query);
-        $numRows = $objDB->getNumRows($query);
-
-        if ($numRows > 0){
-
-            $queryDen = "SELECT count(id_denuncia) "
-                    . "AS total_denuncias "
-                    . "FROM denuncias "
-                    . "WHERE id_ciudadano = {$rs['id_ciudadano']}";
-
-                    $rsDen = $objDB->getRecord($queryDen); //devuelve 0 para $rsDen['total_denuncias'] cuando no hay denuncias registradas
-
-
-            $querySol = "SELECT count(id_solicitud) "
-                    . "AS total_solicitudes "
-                    . "FROM solicitudes "
-                    . "WHERE id_ciudadano = {$rs['id_ciudadano']}";
-
-                    $rsSol = $objDB->getRecord($querySol);
-
-
-            $queryRec = "SELECT count(id_reclamo) "
-                    . "AS total_reclamos "
-                    . "FROM reclamos "
-                    . "WHERE id_ciudadano = {$rs['id_ciudadano']}";
-
-                    $rsRec = $objDB->getRecord($queryRec);
-
-
-            $fullname = array(
-                            id_ciudadano => $rs['id_ciudadano'],
-                            apellidos => $rs['apellidos'],
-                            nombres => $rs['nombres'],
-                            direccion => $rs['direccion'],
-                            correo => $rs['correo'],
-                            telefonos => $rs['telefonos'],
-                            denuncias=>$rsDen['total_denuncias'],
-                            solicitudes=>$rsSol['total_solicitudes'],
-                            reclamos=>$rsRec['total_reclamos']
-                    );
-            return $fullname;
+    if ($rs) {
+        $id_ciudadano = $rs['id_ciudadano'];
+        
+        $queries = [
+            'denuncias' => "SELECT COUNT(id_denuncia) AS total FROM denuncias WHERE id_ciudadano = ?",
+            'solicitudes' => "SELECT COUNT(id_solicitud) AS total FROM solicitudes WHERE id_ciudadano = ?",
+            'reclamos' => "SELECT COUNT(id_reclamo) AS total FROM reclamos WHERE id_ciudadano = ?"
+        ];
+        
+        $totals = [];
+        foreach ($queries as $key => $query) {
+            $result = $objDB->getRecord($query, [$id_ciudadano]);
+            $totals[$key] = $result['total'] ?? 0;
         }
-        return 0;
-    } // end of get_fullname
-
-    function getMunicipios($id_estado){
-        $objDB= new DBConexion();
-        $objDB->execute("SET NAMES utf8");
-        $query = "SELECT id_municipio, municipio FROM municipios WHERE id_estado = $id_estado";
-
-        $rs = $objDB->getRecords($query);
-        $numRows = $objDB->getNumRows($query);
-
-        if ($numRows > 0){
-
-            return $rs;
-        }
-        return "no hay";
-    } // end of getMunicipios
-
-    function getParroquias($id_municipio){
-        $objDB= new DBConexion();
-        $objDB->execute("SET NAMES utf8");
-        $query = "SELECT id_parroquia, parroquia FROM parroquias WHERE id_municipio = $id_municipio";
-
-        $rs = $objDB->getRecords($query);
-        $numRows = $objDB->getNumRows($query);
-
-        if ($numRows > 0){
-
-            return $rs;
-        }
-        return "no hay";
-    } // end of getParroquias
-
-    function getComunidades($id_parroquia){
-        $objDB= new DBConexion();
-        $objDB->execute("SET NAMES utf8");
-        $query = "SELECT id_comunidad, comunidad FROM comunidades WHERE id_parroquia = $id_parroquia
-                  ORDER BY comunidad ASC";
-
-        $rs = $objDB->getRecords($query);
-        $numRows = $objDB->getNumRows($query);
-
-        if ($numRows > 0){
-
-            return $rs;
-        }
-        return "no hay";
-    } // end of getComunidades
-
-
-
-
-    function get_totalPorProceso($comunidad){
-        $objDB= new DBConexion();
-
-
-        $queryDen = "SELECT count(id_denuncia) "
-                . "AS total_denuncias "
-                . "FROM denuncias "
-                . "WHERE comunidad = '{$comunidad}'";
-
-                $rsDen = $objDB->getRecord($queryDen);
-
-
-        $querySol = "SELECT count(id_solicitud) "
-                . "AS total_solicitudes "
-                . "FROM solicitudes "
-                . "WHERE comunidad = '{$comunidad}'";
-
-                $rsSol = $objDB->getRecord($querySol);
-
-
-        $queryRec = "SELECT count(id_reclamo) "
-                . "AS total_reclamos "
-                . "FROM reclamos "
-                . "WHERE comunidad = '{$comunidad}'";
-
-                $rsRec = $objDB->getRecord($queryRec);
-
-
-        $totalPorProceso = array(
-                    denuncias=>$rsDen['total_denuncias'],
-                    solicitudes=>$rsSol['total_solicitudes'],
-                    reclamos=>$rsRec['total_reclamos']
-            );
-        return $totalPorProceso;
+        
+        return array_merge($rs, $totals);
     }
+    return null;
+}
 
+function getLocations($table, $column, $id) {
+    global $objDB;
+    $query = "SELECT id_$table, $table FROM $table WHERE $column = ? ORDER BY $table ASC";
+    return $objDB->getRecords($query, [$id]) ?: "no hay";
+}
 
-
-
-
-    function get_totalPorProcesoPorFecha($fechaInicial, $fechaFinal){
-        $objDB= new DBConexion();
-
-
-        $queryDen = "SELECT count(id_denuncia) "
-                . "AS total_denuncias "
-                . "FROM denuncias "
-                . "WHERE fecha_registro "
-                . "BETWEEN '{$fechaInicial}' AND '{$fechaFinal}'";
-
-                $rsDen = $objDB->getRecord($queryDen);
-
-
-        $querySol = "SELECT count(id_solicitud) "
-                . "AS total_solicitudes "
-                . "FROM solicitudes "
-                . "WHERE fecha_registro "
-                . "BETWEEN '{$fechaInicial}' AND '{$fechaFinal}'";
-
-                $rsSol = $objDB->getRecord($querySol);
-
-
-        $queryRec = "SELECT count(id_reclamo) "
-                . "AS total_reclamos "
-                . "FROM reclamos "
-                . "WHERE fecha_registro "
-                . "BETWEEN '{$fechaInicial}' AND '{$fechaFinal}'";
-
-                $rsRec = $objDB->getRecord($queryRec);
-
-
-        $totalPorProceso = array(
-                    denuncias=>$rsDen['total_denuncias'],
-                    solicitudes=>$rsSol['total_solicitudes'],
-                    reclamos=>$rsRec['total_reclamos']
-            );
-        return $totalPorProceso;
+function get_totalPorProceso($comunidad) {
+    global $objDB;
+    $queries = [
+        'denuncias' => "SELECT COUNT(id_denuncia) AS total FROM denuncias WHERE comunidad = ?",
+        'solicitudes' => "SELECT COUNT(id_solicitud) AS total FROM solicitudes WHERE comunidad = ?",
+        'reclamos' => "SELECT COUNT(id_reclamo) AS total FROM reclamos WHERE comunidad = ?"
+    ];
+    
+    $totals = [];
+    foreach ($queries as $key => $query) {
+        $result = $objDB->getRecord($query, [$comunidad]);
+        $totals[$key] = $result['total'] ?? 0;
     }
+    
+    return $totals;
+}
 
-
-
-    if(isset($_POST['txtcedula']) && !empty($_POST['txtcedula'])) {
-        $fullname = get_fullname($_POST['txtcedula']);
-         echo json_encode($fullname);
+function get_totalPorProcesoPorFecha($fechaInicial, $fechaFinal) {
+    global $objDB;
+    $queries = [
+        'denuncias' => "SELECT COUNT(id_denuncia) AS total FROM denuncias WHERE fecha_registro BETWEEN ? AND ?",
+        'solicitudes' => "SELECT COUNT(id_solicitud) AS total FROM solicitudes WHERE fecha_registro BETWEEN ? AND ?",
+        'reclamos' => "SELECT COUNT(id_reclamo) AS total FROM reclamos WHERE fecha_registro BETWEEN ? AND ?"
+    ];
+    
+    $totals = [];
+    foreach ($queries as $key => $query) {
+        $result = $objDB->getRecord($query, [$fechaInicial, $fechaFinal]);
+        $totals[$key] = $result['total'] ?? 0;
     }
+    
+    return $totals;
+}
 
-    if(isset($_POST['fechainicial'], $_POST['fechafinal']) && !empty($_POST['fechainicial']) && !empty($_POST['fechafinal'])) {
+if (!empty($_POST['txtcedula'])) {
+    echo json_encode(get_fullname($_POST['txtcedula']));
+    exit();
+}
 
-        $fecIniUs = date_create_from_format('d/m/Y',$_POST['fechainicial']);
-        $fecIniVe = date_format($fecIniUs, 'Y-m-d') ;
+if (!empty($_POST['fechainicial']) && !empty($_POST['fechafinal'])) {
+    $fechaInicial = date('Y-m-d', strtotime(str_replace('/', '-', $_POST['fechainicial'])));
+    $fechaFinal = date('Y-m-d', strtotime(str_replace('/', '-', $_POST['fechafinal'])));
+    echo json_encode(get_totalPorProcesoPorFecha($fechaInicial, $fechaFinal));
+    exit();
+}
 
-        $fecFinUs = date_create_from_format('d/m/Y',$_POST['fechafinal']);
-        $fecFinVe = date_format($fecFinUs, 'Y-m-d') ;
+if (!empty($_POST['comunidad'])) {
+    echo json_encode(get_totalPorProceso($_POST['comunidad']));
+    exit();
+}
 
-        $fullname = get_totalPorProcesoPorFecha($fecIniVe,$fecFinVe);
-        echo json_encode($fullname);
-    }
+if (!empty($_GET['id_estado'])) {
+    echo json_encode(getLocations('municipios', 'id_estado', $_GET['id_estado']));
+    exit();
+}
 
-    if(isset($_POST['comunidad']) && !empty($_POST['comunidad'])) {
-        $totalPorProceso = get_totalPorProceso($_POST['comunidad']);
-        echo json_encode($totalPorProceso);
-    }
+if (!empty($_GET['id_municipio'])) {
+    echo json_encode(getLocations('parroquias', 'id_municipio', $_GET['id_municipio']));
+    exit();
+}
 
-    if (isset($_GET['id_estado'])){
-        $municipios = getMunicipios($_GET['id_estado']);
-        echo json_encode($municipios);
-    }
-
-    if (isset($_GET['id_municipio'])){
-        $parroquias = getParroquias($_GET['id_municipio']);
-        echo json_encode($parroquias);
-    }
-
-    if (isset($_GET['id_parroquia'])){
-        $comunidades = getComunidades($_GET['id_parroquia']);
-        echo json_encode($comunidades);
-    }
-
-    function getTipoProceso($proceso) {
-        $tipo = ucfirst($proceso);
-        $tipo = substr($tipo, 0, 1);
-        return $tipo;
-    }
-
-// }
-
- ?>
+if (!empty($_GET['id_parroquia'])) {
+    echo json_encode(getLocations('comunidades', 'id_parroquia', $_GET['id_parroquia']));
+    exit();
+}
+?>
